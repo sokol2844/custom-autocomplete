@@ -1,23 +1,38 @@
-import React, { useEffect, useState, useRef } from "react"
+import React, { useEffect, useState, useRef, MouseEvent } from "react"
 import { Field } from 'react-final-form'
 import '../App.css'
 
-export default function Autocomplete(props) {
+export default function Autocomplete() {
+    type Shows = Array<{ name: string}>
     const [display, setDisplay] = useState(false);
     const [search, setSearch] = useState("");
-    const wrapperRef = useRef(null);
+    const [options, setOptions] = useState<Shows>([]);
+    const wrapperRef = useRef<HTMLDivElement>(null);
 
-    const updateInput = value => {
+    function updateInput(value: string) {
         setSearch(value);
         setDisplay(false);
     }
 
-    const handleClickOutside = event => {
-        const { current: wrap } = wrapperRef;
-        if (!wrap.contains(event.target)) {
+    useEffect(() => {
+        fetch('http://api.tvmaze.com/shows')
+        .then((res: any) => {
+            return res.json();
+        })
+        .then((res: Shows) => {
+            setOptions(res);
+        })
+        .catch((err: any) => {
+            console.log(err);
+        })
+      }, []);
+
+    function handleClickOutside(event: any /*React.MouseEvent<EventTarget>*/) {
+        if (wrapperRef.current && !wrapperRef.current.contains(event.target instanceof Node? event.target : null)) {
             setDisplay(false);
         }
     }
+
 
     useEffect(() => {
         window.addEventListener("click", handleClickOutside);
@@ -25,10 +40,9 @@ export default function Autocomplete(props) {
             window.removeEventListener("click", handleClickOutside);
         };
     }, []);
-
+    
     return (
         <div ref={wrapperRef}>
-            
             <h3>Custom Autocomplete</h3>
             <Field name="Autocomplete">
                 {() => (
@@ -45,23 +59,22 @@ export default function Autocomplete(props) {
             </Field>
             {display && (
                 <div className="autoContainer">
-                    {props.options
-                        .filter(({label}) => label.toLowerCase().indexOf(search.toLowerCase()) > -1)
+                    {options
+                        .filter(({name}) => name.toLowerCase().indexOf(search.toLowerCase()) > -1)
                         .map((value, i) => {
                             return (
                                 <div 
                                     className="option"
                                     key={i}
-                                    tabIndex="0"
-                                    onClick = {() => updateInput(value.label)}
+                                    onClick = {() => updateInput(value.name)}
                                 >
-                                    <span>{value.label}</span>
+                                    <span>{value.name}</span>
                                 </div>
                             )
                         })
                     }
                 </div>
-            )}
+                )}
         </div>
     )
 }
